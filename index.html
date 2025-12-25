@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Army Battle 2D - Ultimate Version</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            touch-action: none;
+        }
+        
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            width: 100vw;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 900px;
+            max-height: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        @media (max-width: 900px),
+        (max-height: 500px) {
+            #game-container {
+                max-width: 100%;
+                max-height: 100%;
+                border-radius: 0;
+            }
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        
+        canvas:active {
+            cursor: grabbing;
+        }
+        /* UI LAYER */
+        
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        
+        #ui-layer>* {
+            pointer-events: auto;
+        }
+        /* HUD Info */
+        
+        .hud-top-left {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 220px;
+        }
+        
+        .stats-row {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .stat-box {
+            background-color: rgba(40, 50, 60, 0.85);
+            color: white;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+        /* Bars */
+        
+        .bar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 6px;
+        }
+        
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .bar-label {
+            color: #ddd;
+            font-size: 10px;
+            width: 50px;
+            font-weight: bold;
+        }
+        
+        .progress-track {
+            flex-grow: 1;
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid #666;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.1s;
+        }
+        
+        .fill-move {
+            background: linear-gradient(90deg, #00c853, #69f0ae);
+            width: 100%;
+        }
+        
+        .fill-power {
+            background: linear-gradient(90deg, #ff6d00, #ffd180);
+            width: 0%;
+        }
+        /* Turn Badge */
+        
+        .turn-badge {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(30, 30, 30, 0.9);
+            color: #ff9800;
+            padding: 4px 15px;
+            border-radius: 15px;
+            border: 1px solid #ff9800;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        /* Controls */
+        
+        .controls-area {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+        }
+        
+        .d-pad {
+            display: grid;
+            grid-template-columns: 45px 45px 45px;
+            grid-template-rows: 45px 45px 45px;
+            gap: 5px;
+        }
+        
+        .d-btn {
+            width: 100%;
+            height: 100%;
+            background: rgba(60, 70, 80, 0.8);
+            border: 1px solid #555;
+            border-radius: 8px;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .d-btn:active {
+            background: #888;
+            transform: scale(0.95);
+        }
+        
+        .btn-up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .btn-left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        .btn-right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        .btn-down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+        
+        .action-area {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        .btn-fire {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d32f2f, #b71c1c);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn-fire:active {
+            transform: scale(0.9);
+            background: #b71c1c;
+        }
+        /* Audio Hint & End Screen */
+        
+        #audio-hint,
+        #end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+            cursor: pointer;
+        }
+        
+        #end-screen.hidden,
+        #audio-hint.hidden {
+            display: none;
+        }
+        
+        #end-msg {
+            font-size: 40px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        
+        button.restart-btn {
+            padding: 10px 25px;
+            font-size: 18px;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #ff4b1f, #ff9068);
+            color: white;
+            border: none;
+        }
+        /* Mobile Adjustments */
+        
+        @media (max-width: 600px) {
+            .hud-top-left {
+                transform: scale(0.85);
+                transform-origin: top left;
+                top: 10px;
+                left: 10px;
+            }
+            .btn-fire {
+                width: 70px;
+                height: 70px;
+                font-size: 14px;
+            }
+            .d-pad {
+                grid-template-columns: 40px 40px 40px;
+                grid-template-rows: 40px 40px 40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="audio-hint">
+            <h2>CHẠM VÀO MÀN HÌNH</h2>
+            <p style="margin-top:10px; color:#aaa; font-size: 14px;">Để kích hoạt âm thanh & Bắt đầu</p>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h1 id="end-msg">YOU WIN</h1>
+            <button class="restart-btn" onclick="location.reload()">Chơi lại</button>
+        </div>
+
+        <div id="ui-layer">
+            <div class="turn-badge" id="turn-badge">Lượt: <span style="color: #00d2ff">BẠN</span></div>
+
+            <div class="hud-top-left">
+                <div class="stats-row">
+                    <div class="stat-box">Gió: <span id="wind-val" class="text-blue" style="margin-left:4px; color:#00d2ff">0</span></div>
+                    <div class="stat-box">Góc: <span id="angle-val" class="text-yellow" style="margin-left:4px; color:#ffd700">0°</span></div>
+                    <div class="stat-box">HP: <span id="hp-val" class="text-red" style="margin-left:4px; color:#ff5252">100</span></div>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-row">
+                        <span class="bar-label">Di chuyển</span>
+                        <div class="progress-track">
+                            <div class="progress-fill fill-move" id="move-bar"></div>
+                        </div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-label">Lực bắn</span>
+                        <div class="progress-track">
+                            <div class="progress-fill fill-power" id="power-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <div class="d-pad">
+                    <div class="d-btn btn-up" id="btn-up"><i class="fas fa-caret-up"></i></div>
+                    <div class="d-btn btn-left" id="btn-left"><i class="fas fa-caret-left"></i></div>
+                    <div class="d-btn btn-right" id="btn-right"><i class="fas fa-caret-right"></i></div>
+                    <div class="d-btn btn-down" id="btn-down"><i class="fas fa-caret-down"></i></div>
+                </div>
+            </div>
+
+            <div class="action-area">
+                <button class="btn-fire" id="btn-fire">BẮN</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG & GLOBALS ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('game-container');
+
+        // Dynamic Viewport
+        let VIEWPORT_W = container.clientWidth;
+        let SCREEN_H = container.clientHeight;
+
+        // Map Dimensions (Lớn hơn màn hình để scroll)
+        const MAP_WIDTH = 1200;
+        const MAP_HEIGHT = 1500;
+        const GROUND_Y = MAP_HEIGHT - 140; // Mặt đất theo tọa độ Map
+        const BRIDGE_START = 150;
+        const BRIDGE_END = 1050;
+
+        // Physics & Game Constants
+        const GRAVITY = 0.2;
+        const SPEED_CONSTANT = 0.11;
+        const MAX_MOVE_ENERGY = 100;
+
+        // Camera State
+        let cameraX = 0;
+        let cameraY = MAP_HEIGHT - SCREEN_H; // Start at bottom
+        let isDragging = false;
+        let startDragX = 0,
+            startDragY = 0;
+        let initialCameraX = 0,
+            initialCameraY = 0;
+
+        // Game State
+        let gameState = 'WAITING'; // WAITING, PLAYING, ENDED
+        let turn = 'PLAYER'; // PLAYER, PLAYER_SHOOTING, AI, AI_SHOOTING
+        let wind = 0;
+        let moveEnergy = MAX_MOVE_ENERGY;
+        let charging = false;
+        let currentPower = 0;
+        let keys = {};
+
+        // Entities
+        let clouds = [];
+        let bullets = [];
+        let particles = [];
+        let floatingTexts = [];
+        let waterOffset = 0;
+
+        // UI Elements
+        const elWind = document.getElementById('wind-val');
+        const elAngle = document.getElementById('angle-val');
+        const elHp = document.getElementById('hp-val');
+        const elMoveBar = document.getElementById('move-bar');
+        const elPowerBar = document.getElementById('power-bar');
+        const elTurn = document.getElementById('turn-badge');
+        const elEndScreen = document.getElementById('end-screen');
+        const elEndMsg = document.getElementById('end-msg');
+
+        // --- 2. SOUND MANAGER ---
+        const SoundManager = {
+            ctx: null,
+            osc: null,
+            gainNode: null,
+            init: function() {
+                if (!this.ctx) {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AC();
+                }
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            createNoiseBuffer: function() {
+                if (!this.ctx) return null;
+                const bSize = this.ctx.sampleRate * 2;
+                const buf = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < bSize; i++) data[i] = Math.random() * 2 - 1;
+                return buf;
+            },
+            playShoot: function() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.createNoiseBuffer();
+                const nf = this.ctx.createBiquadFilter();
+                nf.type = 'lowpass';
+                nf.frequency.setValueAtTime(1000, t);
+                nf.frequency.exponentialRampToValueAtTime(100, t + 0.2);
+                const ng = this.ctx.createGain();
+                ng.gain.setValueAtTime(0.5, t);
+                ng.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+                noise.connect(nf);
+                nf.connect(ng);
+                ng.connect(this.ctx.destination);
+                noise.start(t);
+                noise.stop(t + 0.3);
+
+                const osc = this.ctx.createOscillator();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, t);
+                osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+                const og = this.ctx.createGain();
+                og.gain.setValueAtTime(0.3, t);
+                og.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+                osc.connect(og);
+                og.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.2);
+            },
+            playExplosion: function() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = this.createNoiseBuffer();
+                const nf = this.ctx.createBiquadFilter();
+                nf.type = 'lowpass';
+                nf.frequency.value = 800;
+                const ng = this.ctx.createGain();
+                ng.gain.setValueAtTime(1.0, t);
+                ng.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+                noise.connect(nf);
+                nf.connect(ng);
+                ng.connect(this.ctx.destination);
+                noise.start(t);
+                noise.stop(t + 1);
+            },
+            playMove: function() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(40, t);
+                const g = this.ctx.createGain();
+                g.gain.setValueAtTime(0.1, t);
+                g.gain.linearRampToValueAtTime(0, t + 0.1);
+                osc.connect(g);
+                g.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.1);
+            },
+            startCharge: function() {
+                if (!this.ctx || this.osc) return;
+                this.osc = this.ctx.createOscillator();
+                this.osc.type = 'triangle';
+                this.osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                this.gainNode = this.ctx.createGain();
+                this.gainNode.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                this.osc.connect(this.gainNode);
+                this.gainNode.connect(this.ctx.destination);
+                this.osc.start();
+            },
+            updateCharge: function(p) {
+                if (this.osc && this.ctx) this.osc.frequency.setTargetAtTime(200 + (p * 4), this.ctx.currentTime, 0.05);
+            },
+            stopCharge: function() {
+                if (this.osc) {
+                    this.gainNode.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+                    this.osc.stop(this.ctx.currentTime + 0.1);
+                    this.osc = null;
+                    this.gainNode = null;
+                }
+            }
+        };
+
+        // --- 3. CLASSES ---
+
+        class Cloud {
+            constructor() {
+                this.x = Math.random() * MAP_WIDTH;
+                this.y = Math.random() * (MAP_HEIGHT - 500);
+                this.speed = (Math.random() * 0.2) + 0.1;
+                this.size = (Math.random() * 0.5) + 0.5;
+                this.parallaxX = 0.5;
+                this.parallaxY = 0.2;
+                this.puffs = [];
+                for (let i = 0; i < 5 + Math.random() * 5; i++) {
+                    this.puffs.push({
+                        x: (Math.random() - 0.5) * 60,
+                        y: (Math.random() - 0.5) * 30,
+                        r: 20 + Math.random() * 20
+                    });
+                }
+            }
+            update() {
+                this.x += this.speed + (wind * 0.05);
+                if (this.x > MAP_WIDTH + 100) this.x = -100;
+                else if (this.x < -100) this.x = MAP_WIDTH + 100;
+            }
+            draw() {
+                // Parallax rendering
+                let rx = this.x - (cameraX * this.parallaxX);
+                let ry = this.y - (cameraY * this.parallaxY);
+                // Wrap around logic for infinite feel visually could be added, but simple check is enough
+                if (rx > -100 && rx < VIEWPORT_W + 100 && ry > -100 && ry < SCREEN_H + 100) {
+                    ctx.save();
+                    ctx.translate(rx, ry); // Clouds are drawn in Screen Space with Parallax offset
+                    ctx.scale(this.size, this.size);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.beginPath();
+                    this.puffs.forEach(p => {
+                        ctx.moveTo(p.x, p.y);
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    });
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        class Character {
+            constructor(x, color, name, isAI) {
+                this.x = x;
+                this.y = GROUND_Y - 14;
+                this.w = 48;
+                this.color = color;
+                this.hp = 100;
+                this.maxHp = 100;
+                this.name = name;
+                this.isAI = isAI;
+                this.angle = isAI ? 135 : 45;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                // Trajectory (Only Player)
+                if (!this.isAI && turn === 'PLAYER' && gameState === 'PLAYING') {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.setLineDash([4, 10]);
+                    let rad = this.angle * Math.PI / 180;
+                    let sx = Math.cos(rad) * 44,
+                        sy = -10 - Math.sin(rad) * 44;
+                    let vx = Math.cos(rad) * 11,
+                        vy = -Math.sin(rad) * 11; // Approx 100% power
+                    ctx.moveTo(sx, sy);
+                    for (let i = 0; i < 25; i++) { // Short guide line
+                        vx += wind * 0.02;
+                        vy += GRAVITY;
+                        sx += vx;
+                        sy += vy;
+                        ctx.lineTo(sx, sy);
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                // Tank Body
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.moveTo(-24, 14);
+                ctx.lineTo(24, 14);
+                ctx.lineTo(28, 4);
+                ctx.lineTo(-28, 4);
+                ctx.fill();
+                // Wheels
+                ctx.fillStyle = '#444';
+                for (let i = 0; i < 6; i++) {
+                    ctx.beginPath();
+                    ctx.arc(-20 + (i * 8), 9, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                // Main Body
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-22, -4, 44, 12);
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.strokeRect(-22, -4, 44, 12);
+                // Turret
+                ctx.beginPath();
+                ctx.arc(0, -4, 16, Math.PI, 0);
+                ctx.fill();
+                ctx.stroke();
+                // Cannon
+                ctx.save();
+                ctx.translate(0, -10);
+                ctx.rotate(-this.angle * Math.PI / 180);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(0, -6, 14, 12);
+                let grad = ctx.createLinearGradient(14, -4, 44, -4);
+                grad.addColorStop(0, '#ccc');
+                grad.addColorStop(1, '#999');
+                ctx.fillStyle = grad;
+                ctx.fillRect(14, -4, 30, 8);
+                ctx.strokeRect(14, -4, 30, 8);
+                ctx.restore();
+                ctx.restore();
+
+                // Draw HP Bar above tank (World Space)
+                const hpX = this.x - 25;
+                const hpY = this.y - 45;
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(hpX, hpY, 50, 6);
+                const hpP = Math.max(0, this.hp / this.maxHp);
+                ctx.fillStyle = hpP < 0.3 ? '#ff5252' : '#00e676';
+                ctx.fillRect(hpX, hpY, 50 * hpP, 6);
+            }
+            move(dir) {
+                if (!this.isAI && moveEnergy <= 0) return;
+                this.x += dir * 2;
+                SoundManager.playMove();
+                // Simple terrain bump
+                this.y = (GROUND_Y - 14) + (Math.random() > 0.7 ? (Math.random() - 0.5) : 0);
+                if (!this.isAI) moveEnergy -= 1;
+                // Clamp to bridge
+                this.x = Math.max(BRIDGE_START + 25, Math.min(BRIDGE_END - 25, this.x));
+            }
+            adjustAngle(d) {
+                this.angle = Math.max(10, Math.min(170, this.angle + d));
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, angle, power, windVal) {
+                const rad = angle * Math.PI / 180;
+                this.x = x + Math.cos(rad) * 44;
+                this.y = (y - 14) - Math.sin(rad) * 44; // Adjust for tank height
+                const speed = power * SPEED_CONSTANT;
+                this.vx = Math.cos(rad) * speed;
+                this.vy = -Math.sin(rad) * speed;
+                this.windEffect = windVal * 0.02;
+                this.trail = [];
+            }
+            update() {
+                this.trail.push({
+                    x: this.x,
+                    y: this.y
+                });
+                if (this.trail.length > 15) this.trail.shift();
+                this.vx += this.windEffect;
+                this.vy += GRAVITY;
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+            draw() {
+                ctx.beginPath();
+                this.trail.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.strokeStyle = 'rgba(255, 200, 0, 0.6)';
+                ctx.stroke();
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.vx = (Math.random() - 0.5) * 5;
+                this.vy = (Math.random() - 0.5) * 5;
+                this.life = 1.0;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.04;
+            }
+            draw() {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.type === 'smoke' ? '#888' : '#ff4400';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4 + (1 - this.life) * 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // --- 4. GAME INITIALIZATION ---
+        // Player starts Left, AI starts Right (far side of map)
+        const player = new Character(250, '#e53935', 'Bạn', false);
+        const ai = new Character(950, '#1e88e5', 'Máy', true);
+
+        function init() {
+            resizeCanvas();
+            for (let i = 0; i < 15; i++) clouds.push(new Cloud());
+            randomWind();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- 5. LOGIC & UPDATES ---
+        function resizeCanvas() {
+            VIEWPORT_W = container.clientWidth;
+            SCREEN_H = container.clientHeight;
+            canvas.width = VIEWPORT_W;
+            canvas.height = SCREEN_H;
+            clampCamera();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function clampCamera() {
+            // Camera logic to follow constraints
+            if (cameraX < 0) cameraX = 0;
+            if (cameraX > MAP_WIDTH - VIEWPORT_W) cameraX = MAP_WIDTH - VIEWPORT_W;
+            if (cameraY < 0) cameraY = 0;
+            if (cameraY > MAP_HEIGHT - SCREEN_H) cameraY = MAP_HEIGHT - SCREEN_H;
+
+            // Safety for large screens
+            if (MAP_WIDTH < VIEWPORT_W) cameraX = -(VIEWPORT_W - MAP_WIDTH) / 2;
+            if (MAP_HEIGHT < SCREEN_H) cameraY = -(SCREEN_H - MAP_HEIGHT) / 2;
+        }
+
+        function randomWind() {
+            wind = parseFloat(((Math.random() * 10) - 5).toFixed(1));
+        }
+
+        function switchTurn() {
+            if (gameState === 'ENDED') return;
+            if (turn === 'PLAYER_SHOOTING') {
+                if (ai.hp <= 0) endGame('YOU WIN', '#00e676');
+                else {
+                    turn = 'AI';
+                    setTimeout(aiLogic, 1000);
+                }
+            } else {
+                if (player.hp <= 0) endGame('GAME OVER', '#ff5252');
+                else {
+                    turn = 'PLAYER';
+                    moveEnergy = MAX_MOVE_ENERGY;
+                    randomWind();
+                }
+            }
+            updateUI();
+        }
+
+        function endGame(msg, color) {
+            gameState = 'ENDED';
+            elEndMsg.innerText = msg;
+            elEndMsg.style.color = color;
+            elEndScreen.classList.remove('hidden');
+        }
+
+        function shoot(char, power) {
+            SoundManager.playShoot();
+            const rad = char.angle * Math.PI / 180;
+            // Muzzle position relative to char
+            createExplosion(char.x + Math.cos(rad) * 44, (char.y - 14) - Math.sin(rad) * 44, 10, 'smoke');
+            bullets.push(new Bullet(char.x, char.y, char.angle, power, wind));
+        }
+
+        function createExplosion(x, y, count, type) {
+            for (let i = 0; i < count; i++) particles.push(new Particle(x, y, type));
+        }
+
+        function checkCollision() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                let hit = false;
+                let target = (turn === 'PLAYER_SHOOTING') ? ai : player;
+
+                if (b.y >= GROUND_Y + 10) hit = true; // Hit ground
+                else if (b.y > MAP_HEIGHT) bullets.splice(i, 1); // Fall off map
+
+                // Collision with tank (approx box)
+                if (Math.abs(b.x - target.x) < 25 && Math.abs(b.y - target.y) < 30) {
+                    hit = true;
+                    let dmg = Math.floor(Math.random() * 10 + 20);
+                    target.hp -= dmg;
+                    showFloatingText(`-${dmg}`, target.x, target.y - 50, 'red');
+                }
+
+                if (hit) {
+                    SoundManager.playExplosion();
+                    createExplosion(b.x, b.y, 20, 'fire');
+                    bullets.splice(i, 1);
+                } else if (b.x < -100 || b.x > MAP_WIDTH + 100) bullets.splice(i, 1);
+            }
+        }
+
+        function showFloatingText(txt, x, y, c) {
+            floatingTexts.push({
+                text: txt,
+                x: x,
+                y: y,
+                color: c,
+                life: 60
+            });
+        }
+
+        // AI Logic (Updated for MAP coordinate system)
+        function aiLogic() {
+            if (gameState === 'ENDED') return;
+            ai.angle = 180 - (Math.random() * 30 + 20); // Angle facing left
+
+            let perfectPower = -1;
+            // Try to simulate shot
+            for (let p = 10; p <= 100; p++) {
+                if (simulateShot(ai, player, ai.angle, p)) {
+                    perfectPower = p;
+                    break;
+                }
+            }
+
+            let finalPower;
+            if (perfectPower !== -1) {
+                finalPower = perfectPower + (Math.random() * 10 - 5); // Add error
+            } else {
+                // Estimate based on distance
+                let dist = Math.abs(ai.x - player.x);
+                finalPower = (dist / 1200) * 110 + (Math.random() * 10 - 5);
+            }
+            finalPower = Math.min(100, Math.max(10, finalPower));
+
+            turn = 'AI_SHOOTING';
+            shoot(ai, finalPower);
+        }
+
+        function simulateShot(shooter, target, angle, p) {
+            const rad = angle * Math.PI / 180;
+            let sx = shooter.x,
+                sy = shooter.y - 14;
+            let vx = Math.cos(rad) * (p * SPEED_CONSTANT),
+                vy = -Math.sin(rad) * (p * SPEED_CONSTANT);
+            for (let i = 0; i < 600; i++) {
+                vx += wind * 0.02;
+                vy += GRAVITY;
+                sx += vx;
+                sy += vy;
+                if (Math.abs(sx - target.x) < 25 && Math.abs(sy - target.y) < 30) return true;
+                if (sy > GROUND_Y) break;
+            }
+            return false;
+        }
+
+        // --- 6. RENDER LOOP ---
+        function drawEnvironment() {
+            // Sky gradient
+            let grad = ctx.createLinearGradient(0, 0, 0, SCREEN_H);
+            grad.addColorStop(0, '#87CEEB');
+            grad.addColorStop(0.6, '#B0E0E6');
+            grad.addColorStop(1, '#E0F7FA');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, VIEWPORT_W, SCREEN_H); // Fill viewport
+        }
+
+        function drawWorldElements() {
+            // Bridge Pillars
+            const bridgeH = 25;
+            ctx.fillStyle = '#444';
+            for (let bx = BRIDGE_START + 100; bx < BRIDGE_END; bx += 200) {
+                if (bx - cameraX > -50 && bx - cameraX < VIEWPORT_W + 50)
+                    ctx.fillRect(bx - 10, GROUND_Y + bridgeH, 20, MAP_HEIGHT - GROUND_Y);
+            }
+
+            // Bridge Body
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(BRIDGE_START, GROUND_Y, BRIDGE_END - BRIDGE_START, bridgeH);
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(BRIDGE_START, GROUND_Y);
+            ctx.lineTo(BRIDGE_END, GROUND_Y);
+            ctx.moveTo(BRIDGE_START, GROUND_Y + bridgeH);
+            ctx.lineTo(BRIDGE_END, GROUND_Y + bridgeH);
+
+            // Segments
+            for (let i = BRIDGE_START; i < BRIDGE_END; i += 30) {
+                if (i - cameraX > -50 && i - cameraX < VIEWPORT_W + 50) {
+                    ctx.moveTo(i, GROUND_Y);
+                    ctx.lineTo(i + 15, GROUND_Y + bridgeH);
+                    ctx.lineTo(i + 30, GROUND_Y);
+                }
+            }
+            ctx.stroke();
+
+            // Railing
+            ctx.fillStyle = '#DDD';
+            ctx.fillRect(BRIDGE_START, GROUND_Y - 5, BRIDGE_END - BRIDGE_START, 4);
+            ctx.fillStyle = '#999';
+            for (let r = BRIDGE_START; r <= BRIDGE_END; r += 20) {
+                if (r - cameraX > -10 && r - cameraX < VIEWPORT_W + 10) ctx.fillRect(r, GROUND_Y - 5, 2, 4);
+            }
+
+            // Water
+            let wStart = Math.floor(cameraX / 10) * 10 - 20;
+            if (wStart < 0) wStart = 0;
+            let wEnd = wStart + VIEWPORT_W + 40;
+            if (wEnd > MAP_WIDTH) wEnd = MAP_WIDTH;
+
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = '#0288D1';
+            ctx.beginPath();
+            ctx.moveTo(wStart, MAP_HEIGHT);
+            for (let i = wStart; i <= wEnd; i += 10) ctx.lineTo(i, (GROUND_Y + 50) + Math.sin(i * 0.01 + waterOffset) * 10);
+            ctx.lineTo(wEnd, MAP_HEIGHT);
+            ctx.fill();
+
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = '#4FC3F7';
+            ctx.beginPath();
+            ctx.moveTo(wStart, MAP_HEIGHT);
+            for (let i = wStart; i <= wEnd; i += 10) ctx.lineTo(i, (GROUND_Y + 60) + Math.sin(i * 0.015 + waterOffset + 1) * 8);
+            ctx.lineTo(wEnd, MAP_HEIGHT);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+
+        function gameLoop() {
+            // Update Logic
+            if (gameState !== 'ENDED') {
+                waterOffset += 0.05;
+                clouds.forEach(c => c.update());
+
+                // Handle Bullets
+                if (bullets.length > 0) {
+                    bullets.forEach(b => b.update());
+                    checkCollision();
+                    // Auto follow bullet with camera
+                    if (bullets.length > 0) {
+                        let b = bullets[0];
+                        let targetCamX = b.x - VIEWPORT_W / 2;
+                        cameraX += (targetCamX - cameraX) * 0.1; // Smooth follow
+                        clampCamera();
+                    }
+                } else if (turn.includes('SHOOTING') && particles.length === 0) {
+                    switchTurn();
+                    // Return camera to active player
+                    let targetX = (turn === 'PLAYER') ? player.x - 200 : ai.x - (VIEWPORT_W - 200);
+                    cameraX += (targetX - cameraX) * 0.05;
+                    clampCamera();
+                }
+
+                // Particles & Text
+                particles.forEach((p, i) => {
+                    p.update();
+                    if (p.life <= 0) particles.splice(i, 1);
+                });
+                floatingTexts.forEach((f, i) => {
+                    f.y -= 1;
+                    f.life--;
+                    if (f.life <= 0) floatingTexts.splice(i, 1);
+                });
+
+                // Player Input
+                if (turn === 'PLAYER') {
+                    if (keys['ArrowLeft']) player.move(-1);
+                    if (keys['ArrowRight']) player.move(1);
+                    if (keys['ArrowUp']) player.adjustAngle(1);
+                    if (keys['ArrowDown']) player.adjustAngle(-1);
+                    if (charging) {
+                        SoundManager.startCharge();
+                        SoundManager.updateCharge(currentPower);
+                        currentPower = Math.min(100, currentPower + 1.5);
+                        // Update Power UI
+                        elPowerBar.style.width = currentPower + '%';
+                    } else {
+                        SoundManager.stopCharge();
+                    }
+                    updateUI(); // Sync UI
+                }
+            }
+
+            // Draw Logic
+            ctx.clearRect(0, 0, VIEWPORT_W, SCREEN_H);
+            drawEnvironment();
+
+            // Cloud separate (parallax)
+            clouds.forEach(c => c.draw());
+
+            ctx.save();
+            ctx.translate(-cameraX, -cameraY); // <--- CAMERA TRANSFORM START
+
+            drawWorldElements();
+            player.draw();
+            ai.draw();
+            bullets.forEach(b => b.draw());
+            particles.forEach(p => p.draw());
+
+            // Floating Text (World Space)
+            floatingTexts.forEach(ft => {
+                ctx.fillStyle = ft.color;
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(ft.text, ft.x, ft.y);
+            });
+
+            ctx.restore(); // <--- CAMERA TRANSFORM END
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            elWind.innerText = (wind > 0 ? '→ ' : '← ') + Math.abs(wind);
+            elAngle.innerText = Math.floor(player.angle) + '°';
+            elHp.innerText = Math.max(0, player.hp);
+            elMoveBar.style.width = (moveEnergy / MAX_MOVE_ENERGY * 100) + '%';
+            elTurn.innerHTML = `Lượt: <span style="color:${turn.includes('PLAYER')?'#00d2ff':'#ff5722'}">${turn.includes('PLAYER')?'BẠN':'MÁY'}</span>`;
+            if (!charging) elPowerBar.style.width = currentPower + '%';
+        }
+
+        // --- 7. INPUT HANDLING ---
+        const hint = document.getElementById('audio-hint');
+        hint.addEventListener('click', () => {
+            SoundManager.init();
+            hint.classList.add('hidden');
+            gameState = 'PLAYING';
+        });
+
+        // Drag Camera
+        canvas.addEventListener('mousedown', e => {
+            isDragging = true;
+            startDragX = e.clientX;
+            startDragY = e.clientY;
+            initialCameraX = cameraX;
+            initialCameraY = cameraY;
+            canvas.style.cursor = 'grabbing';
+        });
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            cameraX = initialCameraX - (e.clientX - startDragX);
+            cameraY = initialCameraY - (e.clientY - startDragY);
+            clampCamera();
+        });
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+
+        // Touch Camera
+        canvas.addEventListener('touchstart', e => {
+            isDragging = true;
+            startDragX = e.touches[0].clientX;
+            startDragY = e.touches[0].clientY;
+            initialCameraX = cameraX;
+            initialCameraY = cameraY;
+        }, {
+            passive: false
+        });
+        window.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            // Check if we are interacting with UI, if not, move camera
+            cameraX = initialCameraX - (e.touches[0].clientX - startDragX);
+            cameraY = initialCameraY - (e.touches[0].clientY - startDragY);
+            clampCamera();
+        }, {
+            passive: false
+        });
+        window.addEventListener('touchend', () => isDragging = false);
+
+        // Game Controls
+        function handleStart(act) {
+            if (gameState !== 'PLAYING' || turn !== 'PLAYER') return;
+            if (act === 'fire') {
+                charging = true;
+                currentPower = 0;
+            } else keys[act] = true;
+        }
+
+        function handleEnd(act) {
+            if (gameState !== 'PLAYING' || turn !== 'PLAYER') return;
+            if (act === 'fire') {
+                charging = false;
+                SoundManager.stopCharge();
+                if (currentPower > 5) {
+                    turn = 'PLAYER_SHOOTING';
+                    shoot(player, currentPower);
+                    updateUI();
+                }
+            } else keys[act] = false;
+        }
+
+        // Keyboard
+        window.addEventListener('keydown', e => handleStart(e.code === 'Space' ? 'fire' : e.code));
+        window.addEventListener('keyup', e => handleEnd(e.code === 'Space' ? 'fire' : e.code));
+
+        // Touch UI
+        const mapBtn = {
+            'btn-left': 'ArrowLeft',
+            'btn-right': 'ArrowRight',
+            'btn-up': 'ArrowUp',
+            'btn-down': 'ArrowDown',
+            'btn-fire': 'fire'
+        };
+        Object.keys(mapBtn).forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                handleStart(mapBtn[id]);
+            });
+            el.addEventListener('mouseup', (e) => {
+                e.stopPropagation();
+                handleEnd(mapBtn[id]);
+            });
+            el.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleStart(mapBtn[id]);
+            });
+            el.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleEnd(mapBtn[id]);
+            });
+        });
+
+        init();
+    </script>
+</body>
+
+</html>
