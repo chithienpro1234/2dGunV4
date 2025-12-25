@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Army Battle 2D - Ultimate Version</title>
+    <title>Army Battle 2D - Mobile Fix</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -23,8 +23,8 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow: hidden;
             width: 100vw;
+            overflow: hidden;
         }
         
         #game-container {
@@ -38,13 +38,20 @@
             overflow: hidden;
             background: #000;
         }
+        /* --- MOBILE FIX: GIẢM CHIỀU CAO --- */
         
-        @media (max-width: 900px),
-        (max-height: 500px) {
+        @media (max-width: 900px) {
             #game-container {
-                max-width: 100%;
-                max-height: 100%;
+                width: 100%;
+                /* Thay đổi quan trọng: Chỉ lấy 65% chiều cao màn hình để nút bấm được đẩy lên */
+                height: 65vh;
+                max-height: none;
+                /* Bỏ giới hạn pixel cứng */
                 border-radius: 0;
+                /* Căn giữa màn hình */
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
             }
         }
         
@@ -67,7 +74,6 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         
         #ui-layer>* {
@@ -292,6 +298,12 @@
         /* Mobile Adjustments */
         
         @media (max-width: 600px) {
+            .turn-badge {
+                left: auto;
+                right: 20px;
+                transform: none;
+                top: 15px;
+            }
             .hud-top-left {
                 transform: scale(0.85);
                 transform-origin: top left;
@@ -376,10 +388,14 @@
         let VIEWPORT_W = container.clientWidth;
         let SCREEN_H = container.clientHeight;
 
-        // Map Dimensions (Lớn hơn màn hình để scroll)
+        // Map Dimensions
         const MAP_WIDTH = 1200;
         const MAP_HEIGHT = 1500;
-        const GROUND_Y = MAP_HEIGHT - 140; // Mặt đất theo tọa độ Map
+
+        // --- FIX LOGIC: NÂNG MẶT ĐẤT LÊN CAO HƠN ---
+        // Trước đây là 140, giờ tăng lên 220 để cây cầu không bị che bởi nút
+        const GROUND_Y = MAP_HEIGHT - 220;
+
         const BRIDGE_START = 150;
         const BRIDGE_END = 1050;
 
@@ -390,7 +406,7 @@
 
         // Camera State
         let cameraX = 0;
-        let cameraY = MAP_HEIGHT - SCREEN_H; // Start at bottom
+        let cameraY = MAP_HEIGHT - SCREEN_H;
         let isDragging = false;
         let startDragX = 0,
             startDragY = 0;
@@ -398,8 +414,8 @@
             initialCameraY = 0;
 
         // Game State
-        let gameState = 'WAITING'; // WAITING, PLAYING, ENDED
-        let turn = 'PLAYER'; // PLAYER, PLAYER_SHOOTING, AI, AI_SHOOTING
+        let gameState = 'WAITING';
+        let turn = 'PLAYER';
         let wind = 0;
         let moveEnergy = MAX_MOVE_ENERGY;
         let charging = false;
@@ -553,13 +569,11 @@
                 else if (this.x < -100) this.x = MAP_WIDTH + 100;
             }
             draw() {
-                // Parallax rendering
                 let rx = this.x - (cameraX * this.parallaxX);
                 let ry = this.y - (cameraY * this.parallaxY);
-                // Wrap around logic for infinite feel visually could be added, but simple check is enough
                 if (rx > -100 && rx < VIEWPORT_W + 100 && ry > -100 && ry < SCREEN_H + 100) {
                     ctx.save();
-                    ctx.translate(rx, ry); // Clouds are drawn in Screen Space with Parallax offset
+                    ctx.translate(rx, ry);
                     ctx.scale(this.size, this.size);
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                     ctx.beginPath();
@@ -588,7 +602,6 @@
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
-                // Trajectory (Only Player)
                 if (!this.isAI && turn === 'PLAYER' && gameState === 'PLAYING') {
                     ctx.save();
                     ctx.beginPath();
@@ -598,9 +611,9 @@
                     let sx = Math.cos(rad) * 44,
                         sy = -10 - Math.sin(rad) * 44;
                     let vx = Math.cos(rad) * 11,
-                        vy = -Math.sin(rad) * 11; // Approx 100% power
+                        vy = -Math.sin(rad) * 11;
                     ctx.moveTo(sx, sy);
-                    for (let i = 0; i < 25; i++) { // Short guide line
+                    for (let i = 0; i < 25; i++) {
                         vx += wind * 0.02;
                         vy += GRAVITY;
                         sx += vx;
@@ -610,7 +623,6 @@
                     ctx.stroke();
                     ctx.restore();
                 }
-                // Tank Body
                 ctx.fillStyle = '#222';
                 ctx.beginPath();
                 ctx.moveTo(-24, 14);
@@ -618,24 +630,20 @@
                 ctx.lineTo(28, 4);
                 ctx.lineTo(-28, 4);
                 ctx.fill();
-                // Wheels
                 ctx.fillStyle = '#444';
                 for (let i = 0; i < 6; i++) {
                     ctx.beginPath();
                     ctx.arc(-20 + (i * 8), 9, 3, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                // Main Body
                 ctx.fillStyle = this.color;
                 ctx.fillRect(-22, -4, 44, 12);
                 ctx.strokeStyle = 'rgba(0,0,0,0.3)';
                 ctx.strokeRect(-22, -4, 44, 12);
-                // Turret
                 ctx.beginPath();
                 ctx.arc(0, -4, 16, Math.PI, 0);
                 ctx.fill();
                 ctx.stroke();
-                // Cannon
                 ctx.save();
                 ctx.translate(0, -10);
                 ctx.rotate(-this.angle * Math.PI / 180);
@@ -650,7 +658,6 @@
                 ctx.restore();
                 ctx.restore();
 
-                // Draw HP Bar above tank (World Space)
                 const hpX = this.x - 25;
                 const hpY = this.y - 45;
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -663,10 +670,8 @@
                 if (!this.isAI && moveEnergy <= 0) return;
                 this.x += dir * 2;
                 SoundManager.playMove();
-                // Simple terrain bump
                 this.y = (GROUND_Y - 14) + (Math.random() > 0.7 ? (Math.random() - 0.5) : 0);
                 if (!this.isAI) moveEnergy -= 1;
-                // Clamp to bridge
                 this.x = Math.max(BRIDGE_START + 25, Math.min(BRIDGE_END - 25, this.x));
             }
             adjustAngle(d) {
@@ -678,7 +683,7 @@
             constructor(x, y, angle, power, windVal) {
                 const rad = angle * Math.PI / 180;
                 this.x = x + Math.cos(rad) * 44;
-                this.y = (y - 14) - Math.sin(rad) * 44; // Adjust for tank height
+                this.y = (y - 14) - Math.sin(rad) * 44;
                 const speed = power * SPEED_CONSTANT;
                 this.vx = Math.cos(rad) * speed;
                 this.vy = -Math.sin(rad) * speed;
@@ -733,7 +738,6 @@
         }
 
         // --- 4. GAME INITIALIZATION ---
-        // Player starts Left, AI starts Right (far side of map)
         const player = new Character(250, '#e53935', 'Bạn', false);
         const ai = new Character(950, '#1e88e5', 'Máy', true);
 
@@ -755,13 +759,11 @@
         window.addEventListener('resize', resizeCanvas);
 
         function clampCamera() {
-            // Camera logic to follow constraints
             if (cameraX < 0) cameraX = 0;
             if (cameraX > MAP_WIDTH - VIEWPORT_W) cameraX = MAP_WIDTH - VIEWPORT_W;
             if (cameraY < 0) cameraY = 0;
             if (cameraY > MAP_HEIGHT - SCREEN_H) cameraY = MAP_HEIGHT - SCREEN_H;
 
-            // Safety for large screens
             if (MAP_WIDTH < VIEWPORT_W) cameraX = -(VIEWPORT_W - MAP_WIDTH) / 2;
             if (MAP_HEIGHT < SCREEN_H) cameraY = -(SCREEN_H - MAP_HEIGHT) / 2;
         }
@@ -799,7 +801,6 @@
         function shoot(char, power) {
             SoundManager.playShoot();
             const rad = char.angle * Math.PI / 180;
-            // Muzzle position relative to char
             createExplosion(char.x + Math.cos(rad) * 44, (char.y - 14) - Math.sin(rad) * 44, 10, 'smoke');
             bullets.push(new Bullet(char.x, char.y, char.angle, power, wind));
         }
@@ -814,10 +815,9 @@
                 let hit = false;
                 let target = (turn === 'PLAYER_SHOOTING') ? ai : player;
 
-                if (b.y >= GROUND_Y + 10) hit = true; // Hit ground
-                else if (b.y > MAP_HEIGHT) bullets.splice(i, 1); // Fall off map
+                if (b.y >= GROUND_Y + 10) hit = true;
+                else if (b.y > MAP_HEIGHT) bullets.splice(i, 1);
 
-                // Collision with tank (approx box)
                 if (Math.abs(b.x - target.x) < 25 && Math.abs(b.y - target.y) < 30) {
                     hit = true;
                     let dmg = Math.floor(Math.random() * 10 + 20);
@@ -843,13 +843,11 @@
             });
         }
 
-        // AI Logic (Updated for MAP coordinate system)
         function aiLogic() {
             if (gameState === 'ENDED') return;
-            ai.angle = 180 - (Math.random() * 30 + 20); // Angle facing left
+            ai.angle = 180 - (Math.random() * 30 + 20);
 
             let perfectPower = -1;
-            // Try to simulate shot
             for (let p = 10; p <= 100; p++) {
                 if (simulateShot(ai, player, ai.angle, p)) {
                     perfectPower = p;
@@ -859,9 +857,8 @@
 
             let finalPower;
             if (perfectPower !== -1) {
-                finalPower = perfectPower + (Math.random() * 10 - 5); // Add error
+                finalPower = perfectPower + (Math.random() * 10 - 5);
             } else {
-                // Estimate based on distance
                 let dist = Math.abs(ai.x - player.x);
                 finalPower = (dist / 1200) * 110 + (Math.random() * 10 - 5);
             }
@@ -890,17 +887,15 @@
 
         // --- 6. RENDER LOOP ---
         function drawEnvironment() {
-            // Sky gradient
             let grad = ctx.createLinearGradient(0, 0, 0, SCREEN_H);
             grad.addColorStop(0, '#87CEEB');
             grad.addColorStop(0.6, '#B0E0E6');
             grad.addColorStop(1, '#E0F7FA');
             ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, VIEWPORT_W, SCREEN_H); // Fill viewport
+            ctx.fillRect(0, 0, VIEWPORT_W, SCREEN_H);
         }
 
         function drawWorldElements() {
-            // Bridge Pillars
             const bridgeH = 25;
             ctx.fillStyle = '#444';
             for (let bx = BRIDGE_START + 100; bx < BRIDGE_END; bx += 200) {
@@ -908,7 +903,6 @@
                     ctx.fillRect(bx - 10, GROUND_Y + bridgeH, 20, MAP_HEIGHT - GROUND_Y);
             }
 
-            // Bridge Body
             ctx.fillStyle = '#3a3a3a';
             ctx.fillRect(BRIDGE_START, GROUND_Y, BRIDGE_END - BRIDGE_START, bridgeH);
             ctx.strokeStyle = '#222';
@@ -919,7 +913,6 @@
             ctx.moveTo(BRIDGE_START, GROUND_Y + bridgeH);
             ctx.lineTo(BRIDGE_END, GROUND_Y + bridgeH);
 
-            // Segments
             for (let i = BRIDGE_START; i < BRIDGE_END; i += 30) {
                 if (i - cameraX > -50 && i - cameraX < VIEWPORT_W + 50) {
                     ctx.moveTo(i, GROUND_Y);
@@ -929,7 +922,6 @@
             }
             ctx.stroke();
 
-            // Railing
             ctx.fillStyle = '#DDD';
             ctx.fillRect(BRIDGE_START, GROUND_Y - 5, BRIDGE_END - BRIDGE_START, 4);
             ctx.fillStyle = '#999';
@@ -937,7 +929,6 @@
                 if (r - cameraX > -10 && r - cameraX < VIEWPORT_W + 10) ctx.fillRect(r, GROUND_Y - 5, 2, 4);
             }
 
-            // Water
             let wStart = Math.floor(cameraX / 10) * 10 - 20;
             if (wStart < 0) wStart = 0;
             let wEnd = wStart + VIEWPORT_W + 40;
@@ -962,31 +953,26 @@
         }
 
         function gameLoop() {
-            // Update Logic
             if (gameState !== 'ENDED') {
                 waterOffset += 0.05;
                 clouds.forEach(c => c.update());
 
-                // Handle Bullets
                 if (bullets.length > 0) {
                     bullets.forEach(b => b.update());
                     checkCollision();
-                    // Auto follow bullet with camera
                     if (bullets.length > 0) {
                         let b = bullets[0];
                         let targetCamX = b.x - VIEWPORT_W / 2;
-                        cameraX += (targetCamX - cameraX) * 0.1; // Smooth follow
+                        cameraX += (targetCamX - cameraX) * 0.1;
                         clampCamera();
                     }
                 } else if (turn.includes('SHOOTING') && particles.length === 0) {
                     switchTurn();
-                    // Return camera to active player
                     let targetX = (turn === 'PLAYER') ? player.x - 200 : ai.x - (VIEWPORT_W - 200);
                     cameraX += (targetX - cameraX) * 0.05;
                     clampCamera();
                 }
 
-                // Particles & Text
                 particles.forEach((p, i) => {
                     p.update();
                     if (p.life <= 0) particles.splice(i, 1);
@@ -997,7 +983,6 @@
                     if (f.life <= 0) floatingTexts.splice(i, 1);
                 });
 
-                // Player Input
                 if (turn === 'PLAYER') {
                     if (keys['ArrowLeft']) player.move(-1);
                     if (keys['ArrowRight']) player.move(1);
@@ -1007,24 +992,20 @@
                         SoundManager.startCharge();
                         SoundManager.updateCharge(currentPower);
                         currentPower = Math.min(100, currentPower + 1.5);
-                        // Update Power UI
                         elPowerBar.style.width = currentPower + '%';
                     } else {
                         SoundManager.stopCharge();
                     }
-                    updateUI(); // Sync UI
+                    updateUI();
                 }
             }
 
-            // Draw Logic
             ctx.clearRect(0, 0, VIEWPORT_W, SCREEN_H);
             drawEnvironment();
-
-            // Cloud separate (parallax)
             clouds.forEach(c => c.draw());
 
             ctx.save();
-            ctx.translate(-cameraX, -cameraY); // <--- CAMERA TRANSFORM START
+            ctx.translate(-cameraX, -cameraY);
 
             drawWorldElements();
             player.draw();
@@ -1032,14 +1013,13 @@
             bullets.forEach(b => b.draw());
             particles.forEach(p => p.draw());
 
-            // Floating Text (World Space)
             floatingTexts.forEach(ft => {
                 ctx.fillStyle = ft.color;
                 ctx.font = 'bold 16px Arial';
                 ctx.fillText(ft.text, ft.x, ft.y);
             });
 
-            ctx.restore(); // <--- CAMERA TRANSFORM END
+            ctx.restore();
 
             requestAnimationFrame(gameLoop);
         }
@@ -1053,7 +1033,6 @@
             if (!charging) elPowerBar.style.width = currentPower + '%';
         }
 
-        // --- 7. INPUT HANDLING ---
         const hint = document.getElementById('audio-hint');
         hint.addEventListener('click', () => {
             SoundManager.init();
@@ -1061,7 +1040,6 @@
             gameState = 'PLAYING';
         });
 
-        // Drag Camera
         canvas.addEventListener('mousedown', e => {
             isDragging = true;
             startDragX = e.clientX;
@@ -1081,7 +1059,6 @@
             canvas.style.cursor = 'grab';
         });
 
-        // Touch Camera
         canvas.addEventListener('touchstart', e => {
             isDragging = true;
             startDragX = e.touches[0].clientX;
@@ -1093,7 +1070,6 @@
         });
         window.addEventListener('touchmove', e => {
             if (!isDragging) return;
-            // Check if we are interacting with UI, if not, move camera
             cameraX = initialCameraX - (e.touches[0].clientX - startDragX);
             cameraY = initialCameraY - (e.touches[0].clientY - startDragY);
             clampCamera();
@@ -1102,7 +1078,6 @@
         });
         window.addEventListener('touchend', () => isDragging = false);
 
-        // Game Controls
         function handleStart(act) {
             if (gameState !== 'PLAYING' || turn !== 'PLAYER') return;
             if (act === 'fire') {
@@ -1124,11 +1099,9 @@
             } else keys[act] = false;
         }
 
-        // Keyboard
         window.addEventListener('keydown', e => handleStart(e.code === 'Space' ? 'fire' : e.code));
         window.addEventListener('keyup', e => handleEnd(e.code === 'Space' ? 'fire' : e.code));
 
-        // Touch UI
         const mapBtn = {
             'btn-left': 'ArrowLeft',
             'btn-right': 'ArrowRight',
